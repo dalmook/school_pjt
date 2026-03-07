@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+{% block content %}
+{{ ui.profile_nav(profile, "meal") }}
+{% set header_actions %}
+<div class="segment-tabs">
+  <a class="{% if tab == 'today' %}active{% endif %}" href="/meal/{{ profile.id }}?date={{ selected_date.isoformat() }}&tab=today">오늘</a>
+  <a class="{% if tab == 'week' %}active{% endif %}" href="/meal/{{ profile.id }}?date={{ selected_date.isoformat() }}&tab=week">이번 주</a>
+</div>
+{% endset %}
+{{ ui.page_title("급식", selected_date.strftime("%Y년 %m월 %d일 기준"), header_actions) }}
+
+<section class="toolbar card compact">
+  <div class="date-nav">
+    <a class="button secondary" href="/meal/{{ profile.id }}?date={{ prev_date.isoformat() }}&tab={{ tab }}">이전</a>
+    <strong>{{ selected_date.strftime('%Y.%m.%d') }}</strong>
+    <a class="button secondary" href="/meal/{{ profile.id }}?date={{ next_date.isoformat() }}&tab={{ tab }}">다음</a>
+  </div>
+  <p class="muted">{{ week_start.strftime('%m.%d') }} ~ {{ week_end.strftime('%m.%d') }}</p>
+</section>
+
+{% if error_state %}{{ ui.error_state(error_state) }}{% endif %}
+{% if empty_state %}{{ ui.empty_state(empty_state) }}{% endif %}
+
+{% if meals %}
+<section class="meal-layout">
+  <div class="meal-main">
+    {% if selected_meals %}
+      {% for meal in selected_meals %}
+        {{ ui.meal_card(meal, True) }}
+      {% endfor %}
+    {% else %}
+      <section class="state-card neutral">
+        <h3>선택한 날짜에는 급식이 없습니다.</h3>
+        <p>주말, 공휴일, 방학 기간에는 급식이 제공되지 않을 수 있습니다.</p>
+      </section>
+    {% endif %}
+  </div>
+  <aside class="meal-side">
+    <section class="card">
+      <div class="card-head">
+        <h2>주간 급식표</h2>
+      </div>
+      {{ ui.weekly_meal_grid(meals, profile.id, selected_date, tab) }}
+    </section>
+  </aside>
+</section>
+{% endif %}
+{% endblock %}

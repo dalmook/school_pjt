@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+{% block content %}
+{{ ui.profile_nav(profile, "schedule") }}
+{% set schedule_actions %}
+<div class="schedule-top-actions">
+  <div class="month-switcher">
+    <a class="button secondary" href="/schedule/{{ profile.id }}?month={{ prev_month }}&view={{ view }}">이전달</a>
+    <strong>{{ month_start.strftime('%Y년 %m월') }}</strong>
+    <a class="button secondary" href="/schedule/{{ profile.id }}?month={{ next_month }}&view={{ view }}">다음달</a>
+  </div>
+  <div class="segment-tabs">
+    <a class="{% if view == 'month' %}active{% endif %}" href="/schedule/{{ profile.id }}?month={{ month_start.strftime('%Y-%m') }}&view=month">월간 달력</a>
+    <a class="{% if view == 'list' %}active{% endif %}" href="/schedule/{{ profile.id }}?month={{ month_start.strftime('%Y-%m') }}&view=list">목록 보기</a>
+  </div>
+</div>
+{% endset %}
+{{ ui.page_title("학사일정", "월간 일정과 다가오는 주요 일정을 한눈에 확인합니다.", schedule_actions) }}
+
+{% if error_state %}{{ ui.error_state(error_state) }}{% endif %}
+{% if empty_state %}{{ ui.empty_state(empty_state) }}{% endif %}
+
+<section class="schedule-layout">
+  <div class="schedule-main">
+    {% if view == 'month' %}
+    <section class="calendar card">
+      <div class="calendar-weekdays">
+        <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+      </div>
+      <div class="calendar-grid">
+        {% for week in calendar_weeks %}
+          {% for cell in week %}
+          <a class="calendar-cell {% if not cell.is_current_month %}is-outside{% endif %} {% if cell.is_today %}is-today{% endif %} {% if cell.is_selected %}is-selected{% endif %}" href="{{ cell.href }}">
+            <div class="calendar-date-line">
+              <span class="calendar-date">{{ cell.date.day }}</span>
+            </div>
+            <div class="calendar-items">
+              {% for event in cell.events %}
+              <span class="calendar-event {{ event.badge_tone }}">{{ event.event_name }}</span>
+              {% endfor %}
+              {% if cell.hidden_count %}
+              <span class="calendar-more">+{{ cell.hidden_count }}</span>
+              {% endif %}
+            </div>
+          </a>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </section>
+    {% else %}
+    <section class="card">
+      {{ ui.schedule_list_view(events) }}
+    </section>
+    {% endif %}
+  </div>
+  <div class="schedule-side">
+    {{ ui.schedule_detail_drawer(selected_date, detail_entries, upcoming_events) }}
+  </div>
+</section>
+{% endblock %}

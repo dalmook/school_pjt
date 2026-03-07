@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+{% block content %}
+{{ ui.page_title("텔레그램 연결", "앱이 바로 열리지 않아도 수동으로 연결할 수 있습니다.") }}
+
+<section class="card">
+  <div class="card-head">
+    <h2>{{ telegram_username }}</h2>
+    <a class="button" href="{{ deep_link }}" target="_blank" rel="noreferrer">텔레그램 열기</a>
+  </div>
+  <p class="muted">
+    브라우저에서 텔레그램 앱이 바로 열리지 않으면 아래 순서대로 진행하세요.
+  </p>
+  <ol class="guide-list">
+    <li>텔레그램 앱 또는 텔레그램 웹을 직접 엽니다.</li>
+    <li><strong>@{{ telegram_username }}</strong> 봇 채팅방으로 이동합니다.</li>
+    <li>아래 시작 코드를 포함해 <strong>/start {{ start_code }}</strong> 를 전송합니다.</li>
+  </ol>
+  <div class="copy-panel">
+    <label for="telegram-start-code">시작 명령</label>
+    <div class="copy-row">
+      <input id="telegram-start-code" value="/start {{ start_code }}" readonly>
+      <button class="button secondary" type="button" onclick="copyTelegramStart()">복사</button>
+    </div>
+  </div>
+  <div class="copy-panel">
+    <label for="telegram-link">딥링크</label>
+    <div class="copy-row">
+      <input id="telegram-link" value="{{ deep_link }}" readonly>
+      <button class="button secondary" type="button" onclick="copyTelegramLink()">복사</button>
+    </div>
+  </div>
+  <div class="state-card neutral compact">
+    <h3>연결이 완료되면</h3>
+    <p>텔레그램에서 확인 메시지가 오고, 이후 프로필별 알림을 받을 수 있습니다.</p>
+  </div>
+</section>
+
+<script>
+function copyInput(id) {
+  const input = document.getElementById(id);
+  input.select();
+  input.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(input.value);
+}
+
+function copyTelegramStart() {
+  copyInput("telegram-start-code");
+}
+
+function copyTelegramLink() {
+  copyInput("telegram-link");
+}
+</script>
+{% endblock %}

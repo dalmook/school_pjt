@@ -1,0 +1,187 @@
+{% macro page_title(title, subtitle='', actions='') -%}
+<section class="page-head">
+  <div>
+    <h1 class="page-title">{{ title }}</h1>
+    {% if subtitle %}<p class="page-subtitle">{{ subtitle }}</p>{% endif %}
+  </div>
+  {% if actions %}
+  <div class="page-actions">{{ actions | safe }}</div>
+  {% endif %}
+</section>
+{%- endmacro %}
+
+{% macro profile_nav(profile, current='profile') -%}
+<section class="profile-subnav">
+  <div class="profile-subnav-meta">
+    <strong>{{ profile.profile_name }}</strong>
+    <span>{{ profile.school_name }} · {{ profile.grade }}학년 {{ profile.class_nm }}반</span>
+  </div>
+  <nav class="profile-subnav-links">
+    <a class="{% if current == 'profile' %}active{% endif %}" href="/profiles/{{ profile.id }}">프로필</a>
+    <a class="{% if current == 'timetable' %}active{% endif %}" href="/timetable/{{ profile.id }}">시간표</a>
+    <a class="{% if current == 'meal' %}active{% endif %}" href="/meal/{{ profile.id }}">급식</a>
+    <a class="{% if current == 'schedule' %}active{% endif %}" href="/schedule/{{ profile.id }}">학사일정</a>
+    {% if profile.school_homepage %}
+    <a href="{{ profile.school_homepage }}" target="_blank" rel="noreferrer">학교 홈페이지</a>
+    {% endif %}
+  </nav>
+</section>
+{%- endmacro %}
+
+{% macro empty_state(state) -%}
+<section class="state-card {{ state.tone if state else '' }}">
+  <h3>{{ state.title }}</h3>
+  <p>{{ state.description }}</p>
+  {% if state.action_href and state.action_label %}
+  <a class="button" href="{{ state.action_href }}">{{ state.action_label }}</a>
+  {% endif %}
+</section>
+{%- endmacro %}
+
+{% macro error_state(state) -%}
+<section class="state-card danger">
+  <h3>{{ state.title }}</h3>
+  <p>{{ state.description }}</p>
+</section>
+{%- endmacro %}
+
+{% macro info_chips(items, tone='default') -%}
+<div class="chips">
+  {% for item in items %}
+  <span class="chip {{ tone }}">{{ item }}</span>
+  {% endfor %}
+</div>
+{%- endmacro %}
+
+{% macro accordion(title, lines, detail_items=[]) -%}
+<details class="accordion">
+  <summary>{{ title }}</summary>
+  <div class="accordion-body">
+    {% if detail_items %}
+      {% for item in detail_items %}
+      <div class="info-row">
+        <span class="info-label">{{ item.label }}</span>
+        <span class="info-value">{{ item.value }}</span>
+      </div>
+      {% endfor %}
+    {% else %}
+      {% for line in lines %}
+      <p class="info-paragraph">{{ line }}</p>
+      {% endfor %}
+    {% endif %}
+  </div>
+</details>
+{%- endmacro %}
+
+{% macro meal_card(meal, expanded=False) -%}
+<article class="meal-card">
+  <div class="meal-card-head">
+    <div>
+      <p class="eyebrow">{{ meal.date }} {{ meal.meal_name }}</p>
+      <h3>{{ meal.menu_summary|join(' · ') if meal.menu_summary else '급식 정보 없음' }}</h3>
+    </div>
+    {% if meal.allergy_warnings %}
+    {{ info_chips(meal.allergy_warnings, 'danger') }}
+    {% endif %}
+  </div>
+  <ul class="menu-list">
+    {% for item in meal.menu_items %}
+    <li>
+      <span>{{ item.name }}</span>
+      {% if item.allergy_names %}
+      <span class="menu-meta">{{ item.allergy_names|join(', ') }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <div class="meal-meta-grid">
+    <div class="meta-panel">
+      <span class="meta-label">열량</span>
+      <strong>{{ meal.calories or '-' }}</strong>
+    </div>
+    <div class="meta-panel">
+      <span class="meta-label">알레르기</span>
+      <strong>{{ meal.allergy_codes|join(', ') if meal.allergy_codes else '-' }}</strong>
+    </div>
+  </div>
+  {{ accordion('원산지', meal.origin_lines) }}
+  {{ accordion('영양정보', meal.nutrition_lines, meal.nutrition_items) }}
+</article>
+{%- endmacro %}
+
+{% macro weekly_meal_grid(meals, profile_id, selected_date, tab) -%}
+<section class="weekly-meal-grid">
+  {% for meal in meals %}
+  <a class="week-meal-item {% if meal.date == selected_date %}selected{% endif %}" href="/meal/{{ profile_id }}?date={{ meal.date.isoformat() }}&tab={{ tab }}">
+    <span class="week-meal-date">{{ meal.date.strftime('%m.%d') }}</span>
+    <strong>{{ meal.meal_name }}</strong>
+    <span class="week-meal-summary">
+      {{ meal.menu_summary[:2]|join(' · ') if meal.menu_summary else '급식 없음' }}
+    </span>
+  </a>
+  {% endfor %}
+</section>
+{%- endmacro %}
+
+{% macro schedule_list_view(events) -%}
+<section class="schedule-list">
+  {% for event in events %}
+  <article class="schedule-row">
+    <div class="schedule-row-date">
+      <strong>{{ event.date.strftime('%m.%d') }}</strong>
+      <span>{{ ['월','화','수','목','금','토','일'][event.date.weekday()] }}</span>
+    </div>
+    <div class="schedule-row-main">
+      <span class="badge {{ event.badge_tone }}">{{ event.badge }}</span>
+      <strong>{{ event.event_name }}</strong>
+      <p>{{ event.details or '상세 설명이 없습니다.' }}</p>
+    </div>
+    <div class="schedule-row-dday">
+      {% if event.dday == 0 %}오늘{% elif event.dday and event.dday > 0 %}D-{{ event.dday }}{% else %}-{% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{%- endmacro %}
+
+{% macro schedule_detail_drawer(selected_date, detail_entries, upcoming_events) -%}
+<aside class="schedule-detail">
+  <div class="schedule-detail-head">
+    <p class="eyebrow">{{ selected_date.strftime('%Y.%m.%d') }}</p>
+    <h3>선택한 날짜 일정</h3>
+  </div>
+  {% if detail_entries %}
+    {% for event in detail_entries %}
+    <article class="detail-entry">
+      <div class="list-row">
+        <span class="badge {{ event.badge_tone }}">{{ event.badge }}</span>
+        {% if event.dday == 0 %}
+        <span class="detail-highlight">오늘 일정</span>
+        {% elif event.dday and event.dday > 0 %}
+        <span class="detail-highlight">D-{{ event.dday }}</span>
+        {% endif %}
+      </div>
+      <h4>{{ event.event_name }}</h4>
+      <p>{{ event.details or '상세 설명이 없습니다.' }}</p>
+    </article>
+    {% endfor %}
+  {% else %}
+    <div class="state-card neutral compact">
+      <h3>선택한 날짜 일정이 없습니다.</h3>
+      <p>달력에서 다른 날짜를 선택해 보세요.</p>
+    </div>
+  {% endif %}
+  <div class="detail-subsection">
+    <h4>다가오는 일정</h4>
+    {% for event in upcoming_events %}
+    <div class="upcoming-row">
+      <span>{{ event.date.strftime('%m.%d') }}</span>
+      <span class="badge {{ event.badge_tone }}">{{ event.badge }}</span>
+      <strong>{{ event.event_name }}</strong>
+    </div>
+    {% else %}
+    <p class="muted">다가오는 일정이 없습니다.</p>
+    {% endfor %}
+  </div>
+</aside>
+{%- endmacro %}

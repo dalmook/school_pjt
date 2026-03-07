@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+{% block content %}
+{{ ui.page_title("로그인", "내 자녀 프로필과 알림 설정을 관리합니다.") }}
+<section class="auth-shell">
+  <article class="card auth-card">
+    <h2>로그인</h2>
+    {% if error_message %}
+    <div class="state-card danger compact">
+      <h3>로그인 실패</h3>
+      <p>{{ error_message }}</p>
+    </div>
+    {% endif %}
+    <form method="post" action="/login" class="form-stack">
+      <label>아이디<input name="username" required autocomplete="username"></label>
+      <label>비밀번호<input name="password" type="password" required autocomplete="current-password"></label>
+      <button class="button" type="submit">로그인</button>
+    </form>
+    <p class="muted">계정이 없으면 <a href="/signup">회원가입</a> 하세요.</p>
+  </article>
+</section>
+{% endblock %}

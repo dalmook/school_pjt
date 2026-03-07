@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+{% block content %}
+{{ ui.profile_nav(profile, "profile") }}
+<section class="card">
+  <h1>{{ profile.profile_name }}</h1>
+  <p>{{ profile.school_name }} / {{ profile.grade }}학년 {{ profile.class_nm }}반 / {{ profile.school_level }}</p>
+  <p class="muted">{{ profile.school_address or "주소 정보 없음" }}</p>
+  <div class="action-row">
+    <a class="button" href="/profiles/{{ profile.id }}/edit">수정</a>
+    <a class="button secondary" href="/timetable/{{ profile.id }}">시간표</a>
+    <a class="button secondary" href="/meal/{{ profile.id }}">급식</a>
+    <a class="button secondary" href="/schedule/{{ profile.id }}">학사일정</a>
+    {% if profile.school_homepage %}
+    <a class="button secondary" href="{{ profile.school_homepage }}" target="_blank">학교 홈페이지</a>
+    {% endif %}
+  </div>
+  <hr>
+  <p>아침 알림 {{ profile.morning_alert_time }} / 저녁 알림 {{ profile.evening_alert_time }}</p>
+  <h3>알레르기</h3>
+  <div class="chips">
+    {% for item in profile.allergies %}
+    <span class="chip active">{{ item.allergy_name }}</span>
+    {% else %}
+    <span class="muted">설정 없음</span>
+    {% endfor %}
+  </div>
+  <h3>준비물 규칙</h3>
+  {% for item in profile.supplies %}
+  <div class="list-row">{{ item.subject_name }} → {{ item.supply_text }}</div>
+  {% else %}
+  <div class="empty-card">준비물 규칙이 없습니다.</div>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+{% block content %}
+{{ ui.page_title("홈", "오늘과 내일 학교 브리핑을 빠르게 확인하세요.") }}
+
+{% if empty_state %}
+  {{ ui.empty_state(empty_state) }}
+{% else %}
+  {% if error_state %}{{ ui.error_state(error_state) }}{% endif %}
+  <section class="hero-grid">
+    <article class="card spotlight">
+      <p class="eyebrow">오늘 브리핑</p>
+      <pre class="brief">{{ today_brief }}</pre>
+      <div class="quick-actions">
+        <a class="button secondary" href="/timetable/{{ profile.id }}">시간표</a>
+        <a class="button secondary" href="/meal/{{ profile.id }}">급식</a>
+      </div>
+    </article>
+    <article class="card spotlight">
+      <p class="eyebrow">내일 브리핑</p>
+      <pre class="brief">{{ tomorrow_brief }}</pre>
+      <div class="quick-actions">
+        <a class="button secondary" href="/schedule/{{ profile.id }}">학사일정</a>
+        <a class="button secondary" href="/profiles/{{ profile.id }}">설정</a>
+      </div>
+    </article>
+  </section>
+  <section class="grid two">
+    <article class="card">
+      <div class="card-head">
+        <h2>이번 주 학사일정</h2>
+      </div>
+      {% if week_events %}
+        {% for event in week_events %}
+        <div class="schedule-mini-row">
+          <span class="mini-date">{{ event.date.strftime('%m.%d') }}</span>
+          <span class="badge {{ event.badge_tone }}">{{ event.badge }}</span>
+          <strong>{{ event.event_name }}</strong>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-card">이번 주 일정이 없습니다.</div>
+      {% endif %}
+    </article>
+    <article class="card">
+      <div class="card-head">
+        <h2>시간표 변경</h2>
+      </div>
+      {% if change_preview %}
+        {% for item in change_preview %}
+        <div class="schedule-mini-row changed">
+          <span class="mini-date">{{ item.period }}교시</span>
+          <strong>{{ item.changed_from }} → {{ item.subject }}</strong>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-card">최근 감지된 변경이 없습니다.</div>
+      {% endif %}
+    </article>
+  </section>
+{% endif %}
+{% endblock %}

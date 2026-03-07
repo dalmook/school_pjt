@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="section-head">
+  <h1>프로필</h1>
+  <a class="button" href="/profiles/new">프로필 추가</a>
+</section>
+<section class="grid">
+  {% for profile in profiles %}
+  <article class="card">
+    <h2>{{ profile.profile_name }}</h2>
+    <p>{{ profile.school_name }} / {{ profile.grade }}학년 {{ profile.class_nm }}반</p>
+    <p class="muted">{{ profile.school_level }} · 오전 {{ profile.morning_alert_time }} · 오후 {{ profile.evening_alert_time }}</p>
+    <div class="action-row">
+      <a class="button secondary" href="/profiles/{{ profile.id }}">상세</a>
+      <a class="button secondary" href="/timetable/{{ profile.id }}">시간표</a>
+      <form method="post" action="/profiles/{{ profile.id }}/delete">
+        <button class="button danger" type="submit">삭제</button>
+      </form>
+    </div>
+  </article>
+  {% else %}
+  <article class="card empty-card">등록된 프로필이 없습니다.</article>
+  {% endfor %}
+</section>
+{% endblock %}

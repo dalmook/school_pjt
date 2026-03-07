@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid two">
+  <article class="card">
+    <h1>동기화 로그</h1>
+    {% for log in sync_logs %}
+    <div class="list-row"><strong>{{ log.job_name }}</strong> {{ log.status }} {{ log.started_at }}</div>
+    {% else %}
+    <div class="empty-card">로그 없음</div>
+    {% endfor %}
+  </article>
+  <article class="card">
+    <h1>발송 로그</h1>
+    {% for log in notification_logs %}
+    <div class="list-row"><strong>{{ log.notification_type }}</strong> {{ log.status }} {{ log.sent_at }}</div>
+    {% else %}
+    <div class="empty-card">로그 없음</div>
+    {% endfor %}
+  </article>
+</section>
+{% endblock %}

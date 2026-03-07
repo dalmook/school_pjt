@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+{% block content %}
+{{ ui.page_title("회원가입", "간단한 아이디와 비밀번호로 시작할 수 있습니다.") }}
+<section class="auth-shell">
+  <article class="card auth-card">
+    <h2>회원가입</h2>
+    {% if error_message %}
+    <div class="state-card danger compact">
+      <h3>가입 실패</h3>
+      <p>{{ error_message }}</p>
+    </div>
+    {% endif %}
+    <form method="post" action="/signup" class="form-stack">
+      <label>아이디<input name="username" required minlength="3" autocomplete="username"></label>
+      <label>비밀번호<input name="password" type="password" required minlength="4" autocomplete="new-password"></label>
+      <label>비밀번호 확인<input name="password_confirm" type="password" required minlength="4" autocomplete="new-password"></label>
+      <button class="button" type="submit">회원가입</button>
+    </form>
+    <p class="muted">이미 계정이 있으면 <a href="/login">로그인</a> 하세요.</p>
+  </article>
+</section>
+{% endblock %}

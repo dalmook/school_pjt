@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+{% block content %}
+{{ ui.profile_nav(profile, "timetable") }}
+{% set selected = week.get(selected_date) %}
+{% set weekday_names = ["월", "화", "수", "목", "금", "토", "일"] %}
+
+{% set header_actions %}
+<div class="segment-tabs">
+  <a class="{% if tab == 'today' %}active{% endif %}" href="/timetable/{{ profile.id }}?date={{ selected_date.isoformat() }}&tab=today">오늘</a>
+  <a class="{% if tab == 'week' %}active{% endif %}" href="/timetable/{{ profile.id }}?date={{ selected_date.isoformat() }}&tab=week">이번 주</a>
+</div>
+{% endset %}
+{{ ui.page_title("시간표", selected_date.strftime("%Y년 %m월 %d일 기준"), header_actions) }}
+
+<section class="toolbar card compact">
+  <div class="date-nav">
+    <a class="button secondary" href="/timetable/{{ profile.id }}?date={{ prev_date.isoformat() }}&tab={{ tab }}">이전</a>
+    <strong>{{ selected_date.strftime("%Y.%m.%d") }}</strong>
+    <a class="button secondary" href="/timetable/{{ profile.id }}?date={{ next_date.isoformat() }}&tab={{ tab }}">다음</a>
+  </div>
+  <p class="muted">{{ week_start.strftime("%m.%d") }} ~ {{ week_end.strftime("%m.%d") }}</p>
+</section>
+
+{% if error_state %}{{ ui.error_state(error_state) }}{% endif %}
+{% if empty_state %}{{ ui.empty_state(empty_state) }}{% endif %}
+
+<section class="meal-layout">
+  <div class="meal-main">
+    <article class="card timetable-focus">
+      <div class="card-head">
+        <div>
+          <p class="eyebrow">{{ selected_date.strftime("%Y-%m-%d") }}</p>
+          <h2>{{ selected_date.strftime("%m월 %d일") }} 시간표</h2>
+        </div>
+        {% if selected and selected.is_blocked %}
+        <span class="badge neutral">조회 제한 구간</span>
+        {% endif %}
+      </div>
+      {% if selected and selected.periods %}
+      <div class="timetable-periods">
+        {% for item in selected.periods %}
+        <div class="timetable-row">
+          <div class="timetable-period">{{ item.period }}교시</div>
+          <div class="timetable-subject">{{ item.subject }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-card">{{ selected.message if selected else "등록된 시간표가 없습니다." }}</div>
+      {% endif %}
+    </article>
+  </div>
+
+  <aside class="meal-side">
+    <section class="card">
+      <div class="card-head">
+        <h2>주간 시간표</h2>
+      </div>
+      <div class="weekly-timetable-grid">
+        {% for day, data in week.items() %}
+        <a class="week-meal-item {% if day == selected_date %}selected{% endif %}" href="/timetable/{{ profile.id }}?date={{ day.isoformat() }}&tab={{ tab }}">
+          <span class="week-meal-date">{{ day.strftime("%m.%d") }}</span>
+          <strong>{{ weekday_names[day.weekday()] }}</strong>
+          {% if data.periods %}
+          <span class="week-meal-summary">{{ data.periods[:3] | map(attribute="subject") | join(" / ") }}</span>
+          <span class="muted">{{ data.periods|length }}개 교시</span>
+          {% else %}
+          <span class="week-meal-summary">{{ data.message or "시간표 없음" }}</span>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+    </section>
+  </aside>
+</section>
+{% endblock %}

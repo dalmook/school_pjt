@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>{% if profile %}프로필 수정{% else %}프로필 등록{% endif %}</h1>
+  <form method="post" action="{% if profile %}/profiles/{{ profile.id }}{% else %}/profiles{% endif %}" class="form-stack">
+    <label>프로필명<input name="profile_name" required placeholder="예: 민준" value="{{ profile.profile_name if profile else '' }}"></label>
+    {% if not profile %}
+    <label>학교 검색<input id="school-search" placeholder="학교명을 입력하세요"></label>
+    <div id="school-results" class="search-results"></div>
+    <input type="hidden" name="atpt_ofcdc_sc_code" id="atpt_ofcdc_sc_code" required>
+    <input type="hidden" name="sd_schul_code" id="sd_schul_code" required>
+    <input type="hidden" name="school_name" id="school_name" required>
+    <input type="hidden" name="school_level" id="school_level" required>
+    <input type="hidden" name="school_address" id="school_address">
+    <input type="hidden" name="school_tel" id="school_tel">
+    <input type="hidden" name="school_homepage" id="school_homepage">
+    <label>학년<select name="grade" id="grade-select" required></select></label>
+    <label>반<select name="class_nm" id="class-select" required></select></label>
+    {% else %}
+    <label>학교<input value="{{ profile.school_name }} ({{ profile.school_level }})" disabled></label>
+    <div class="grid two">
+      <label>학년<input name="grade" type="number" min="1" max="12" value="{{ profile.grade }}" required></label>
+      <label>반<input name="class_nm" value="{{ profile.class_nm }}" required></label>
+    </div>
+    {% endif %}
+    <div class="grid two">
+      <label>아침 알림<input type="time" name="morning_alert_time" value="{{ profile.morning_alert_time if profile else '07:00' }}"></label>
+      <label>저녁 알림<input type="time" name="evening_alert_time" value="{{ profile.evening_alert_time if profile else '21:00' }}"></label>
+    </div>
+    <div>
+      <h3>알레르기 설정</h3>
+      <div class="chips">
+        {% for code, name in allergy_map.items() %}
+        <label class="chip">
+          <input type="checkbox" name="allergy_codes" value="{{ code }}" {% if profile and code in (profile.allergies | map(attribute='allergy_code') | list) %}checked{% endif %}>
+          <span>{{ name }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <div>
+      <h3>준비물 규칙</h3>
+      <div id="rules">
+        {% if profile and profile.supplies %}
+        {% for item in profile.supplies %}
+        <div class="grid two">
+          <input name="supply_subjects" placeholder="과목명" value="{{ item.subject_name }}">
+          <input name="supply_texts" placeholder="준비물" value="{{ item.supply_text }}">
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="grid two">
+          <input name="supply_subjects" placeholder="과목명">
+          <input name="supply_texts" placeholder="준비물">
+        </div>
+        <div class="grid two">
+          <input name="supply_subjects" placeholder="과목명">
+          <input name="supply_texts" placeholder="준비물">
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <button class="button" type="submit">{% if profile %}수정 저장{% else %}저장{% endif %}</button>
+  </form>
+</section>
+{% if not profile %}
+<script>
+const searchInput = document.getElementById("school-search");
+const resultsEl = document.getElementById("school-results");
+const gradeSelect = document.getElementById("grade-select");
+const classSelect = document.getElementById("class-select");
+
+function setSchool(item) {
+  document.getElementById("atpt_ofcdc_sc_code").value = item.atpt_ofcdc_sc_code;
+  document.getElementById("sd_schul_code").value = item.sd_schul_code;
+  document.getElementById("school_name").value = item.school_name;
+  document.getElementById("school_level").value = item.school_level;
+  document.getElementById("school_address").value = item.address || "";
+  document.getElementById("school_tel").value = item.tel || "";
+  document.getElementById("school_homepage").value = item.homepage || "";
+}
+
+async function loadClasses(item) {
+  const response = await fetch(`/api/schools/${item.sd_schul_code}/classes?atpt_code=${item.atpt_ofcdc_sc_code}`);
+  const classes = await response.json();
+  const grades = [...new Set(classes.map(entry => entry.grade))];
+  gradeSelect.innerHTML = grades.map(grade => `<option value="${grade}">${grade}학년</option>`).join("");
+  const updateClasses = () => {
+    const selected = classes.filter(entry => String(entry.grade) === gradeSelect.value);
+    classSelect.innerHTML = selected.map(entry => `<option value="${entry.class_nm}">${entry.class_nm}반</option>`).join("");
+  };
+  gradeSelect.onchange = updateClasses;
+  updateClasses();
+}
+
+let timer;
+searchInput.addEventListener("input", () => {
+  clearTimeout(timer);
+  timer = setTimeout(async () => {
+    const q = searchInput.value.trim();
+    if (!q) {
+      resultsEl.innerHTML = "";
+      return;
+    }
+    const response = await fetch(`/api/schools/search?q=${encodeURIComponent(q)}`);
+    const schools = await response.json();
+    resultsEl.innerHTML = schools.map((item, idx) => `
+      <button type="button" class="result-item" data-idx="${idx}">
+        <strong>${item.school_name}</strong>
+        <span>${item.school_level}${item.location_summary ? " · " + item.location_summary : ""}</span>
+      </button>
+    `).join("");
+    resultsEl.querySelectorAll("button").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const item = schools[button.dataset.idx];
+        setSchool(item);
+        searchInput.value = `${item.school_name} (${item.school_level})`;
+        resultsEl.innerHTML = "";
+        await loadClasses(item);
+      });
+    });
+  }, 300);
+});
+</script>
+{% endif %}
+{% endblock %}
