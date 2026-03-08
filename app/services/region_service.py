@@ -60,6 +60,14 @@ class RegionService:
     def get_region(self, region_id: int) -> RegionGroup | None:
         return self.db.scalar(select(RegionGroup).where(RegionGroup.id == region_id))
 
+    def delete_region(self, region_id: int) -> bool:
+        region = self.get_region(region_id)
+        if not region:
+            return False
+        self.db.delete(region)
+        self.db.commit()
+        return True
+
     def get_region_schools(self, region_id: int, only_active: bool = True) -> list[RegionSchool]:
         stmt = select(RegionSchool).where(RegionSchool.region_id == region_id)
         if only_active:
@@ -76,7 +84,7 @@ class RegionService:
         if region_id is not None:
             existing_codes = {
                 (item.atpt_ofcdc_sc_code, item.sd_schul_code)
-                for item in self.get_region_schools(region_id, only_active=False)
+                for item in self.get_region_schools(region_id, only_active=True)
             }
 
         rows = []
@@ -254,6 +262,8 @@ class RegionService:
 
         return {
             "school_id": school.id,
+            "atpt_ofcdc_sc_code": school.atpt_ofcdc_sc_code,
+            "sd_schul_code": school.sd_schul_code,
             "school_name": school_info["school_name"],
             "school_level": school_info["school_level"],
             "student_count": school_info["student_count"],
@@ -267,6 +277,50 @@ class RegionService:
             "upcoming_events": schedule_bundle["upcoming_events"],
             "today_meal_summary": meal_info["today_meal_summary"],
             "tomorrow_meal_summary": meal_info["tomorrow_meal_summary"],
+        }
+
+    async def get_school_detail(self, atpt_code: str, school_code: str, target_date: date) -> dict[str, Any]:
+        info = await self.client.get_school_info(atpt_code, school_code)
+        if not info:
+            raise ValueError("학교 정보를 찾을 수 없습니다.")
+        schedule_rows = await self.client.get_dataset_rows(
+            "SchoolSchedule",
+            {
+                "ATPT_OFCDC_SC_CODE": atpt_code,
+                "SD_SCHUL_CODE": school_code,
+                "AA_FROM_YMD": target_date.strftime("%Y%m%d"),
+                "AA_TO_YMD": (target_date + timedelta(days=6)).strftime("%Y%m%d"),
+            },
+        )
+        meals_rows = await self.client.get_dataset_rows(
+            "mealServiceDietInfo",
+            {
+                "ATPT_OFCDC_SC_CODE": atpt_code,
+                "SD_SCHUL_CODE": school_code,
+                "MLSV_FROM_YMD": target_date.strftime("%Y%m%d"),
+                "MLSV_TO_YMD": (target_date + timedelta(days=1)).strftime("%Y%m%d"),
+            },
+        )
+
+        events = parse_schedule_rows(schedule_rows)
+        today_meals = [row for row in meals_rows if parse_neis_date(row.get("MLSV_YMD")) == target_date]
+        tomorrow_meals = [row for row in meals_rows if parse_neis_date(row.get("MLSV_YMD")) == target_date + timedelta(days=1)]
+
+        return {
+            "atpt_ofcdc_sc_code": atpt_code,
+            "sd_schul_code": school_code,
+            "school_name": info.school_name,
+            "school_level": info.school_level,
+            "org_name": info.org_name,
+            "address": info.address,
+            "homepage": info.homepage,
+            "tel": info.tel,
+            "student_count": None,
+            "today_status": compute_today_status(events, target_date),
+            "today_events": [f"{event['period']} {event['event_name']}" for event in events if event["start_date"] <= target_date <= event["end_date"]],
+            "week_events": [f"{event['period']} {event['event_name']}" for event in events],
+            "today_meal_summary": self._pick_meal_summary(today_meals),
+            "tomorrow_meal_summary": self._pick_meal_summary(tomorrow_meals),
         }
 
     async def _school_schedule_bundle(self, school: RegionSchool, target_date: date) -> dict[str, Any]:

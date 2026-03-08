@@ -2,6 +2,12 @@
 {% import "components.html" as ui %}
 {% block content %}
 {{ ui.page_title("학교 그룹 대시보드", "생활권/관심권 기준으로 학교를 묶어 학사일정을 비교합니다.") }}
+{% if message %}
+<section class="state-card neutral compact">
+  <h3>안내</h3>
+  <p>{{ message }}</p>
+</section>
+{% endif %}
 
 <section class="grid two">
   <article class="card">
@@ -48,11 +54,16 @@
   {% if regions %}
   <div class="region-grid">
     {% for region in regions %}
-    <a class="region-card" href="/regions/{{ region.id }}">
-      <span class="eyebrow">{{ region.region_type or "지역" }}</span>
-      <strong>{{ region.region_name }}</strong>
-      <span class="muted">등록 학교 {{ region.school_count }}개</span>
-    </a>
+    <div class="region-card">
+      <a class="region-card-link" href="/regions/{{ region.id }}">
+        <span class="eyebrow">{{ region.region_type or "지역" }}</span>
+        <strong>{{ region.region_name }}</strong>
+        <span class="muted">등록 학교 {{ region.school_count }}개</span>
+      </a>
+      <form method="post" action="/regions/{{ region.id }}/delete" onsubmit="return confirm('이 그룹을 삭제하시겠습니까?');">
+        <button class="button danger" type="submit">그룹 삭제</button>
+      </form>
+    </div>
     {% endfor %}
   </div>
   {% else %}

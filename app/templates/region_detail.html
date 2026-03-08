@@ -5,6 +5,12 @@
 <a class="button secondary" href="/regions">목록으로</a>
 {% endset %}
 {{ ui.page_title(region_detail.region.region_name ~ " 학교 그룹 대시보드", target_date.strftime('%Y-%m-%d') ~ " 기준", page_actions) }}
+{% if message %}
+<section class="state-card neutral compact">
+  <h3>안내</h3>
+  <p>{{ message }}</p>
+</section>
+{% endif %}
 
 <section class="region-summary-grid region-summary-grid-six">
   <article class="card"><p class="eyebrow">학교 수</p><h2>{{ overview.summary.school_count }}</h2></article>
@@ -122,9 +128,12 @@
     <p>오늘 급식: {{ row.today_meal_summary or '미등록' }}</p>
     <p>내일 급식: {{ row.tomorrow_meal_summary or '미등록' }}</p>
     {% endif %}
-    <form method="post" action="/regions/{{ region_detail.region.id }}/schools/{{ row.school_id }}/delete">
-      <button class="button danger" type="submit">학교 제거</button>
-    </form>
+    <div class="page-actions">
+      <a class="button secondary" href="/schools/{{ row.atpt_ofcdc_sc_code }}/{{ row.sd_schul_code }}">상세 보기</a>
+      <form method="post" action="/regions/{{ region_detail.region.id }}/schools/{{ row.school_id }}/delete" onsubmit="return confirm('이 학교를 그룹에서 삭제하시겠습니까?');">
+        <button class="button danger" type="submit">학교 삭제</button>
+      </form>
+    </div>
   </article>
   {% endfor %}
 </section>
@@ -180,9 +189,12 @@
           <td>{{ row.tomorrow_meal_summary or '미등록' }}</td>
           {% endif %}
           <td>
-            <form method="post" action="/regions/{{ region_detail.region.id }}/schools/{{ row.school_id }}/delete">
-              <button class="button danger" type="submit">제거</button>
-            </form>
+            <div class="table-actions">
+              <a class="button secondary" href="/schools/{{ row.atpt_ofcdc_sc_code }}/{{ row.sd_schul_code }}">상세</a>
+              <form method="post" action="/regions/{{ region_detail.region.id }}/schools/{{ row.school_id }}/delete" onsubmit="return confirm('이 학교를 그룹에서 삭제하시겠습니까?');">
+                <button class="button danger" type="submit">삭제</button>
+              </form>
+            </div>
           </td>
         </tr>
       {% endfor %}

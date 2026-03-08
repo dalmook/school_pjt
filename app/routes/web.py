@@ -4,6 +4,7 @@ import calendar
 import logging
 from collections import defaultdict
 from datetime import date, datetime, timedelta
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -57,6 +58,10 @@ def render(request: Request, template_name: str, context: dict, status_code: int
 
 def login_redirect() -> RedirectResponse:
     return RedirectResponse("/login", status_code=303)
+
+
+def with_msg(path: str, message: str) -> str:
+    return f"{path}{'&' if '?' in path else '?'}msg={quote(message)}"
 
 
 def month_param_to_date(month: str | None, fallback: date) -> date:
@@ -457,13 +462,13 @@ async def schedule_page(profile_id: int, request: Request, month: str | None = N
 
 
 @router.get("/regions", response_class=HTMLResponse)
-async def region_list_page(request: Request, db: Session = Depends(get_db)):
+async def region_list_page(request: Request, msg: str | None = None, db: Session = Depends(get_db)):
     try:
         require_login(request, db)
     except PermissionError:
         return login_redirect()
     service = RegionService(db)
-    return render(request, "regions.html", {"regions": service.list_regions(), "error_message": None, "settings": get_settings()})
+    return render(request, "regions.html", {"regions": service.list_regions(), "error_message": None, "message": msg, "settings": get_settings()})
 
 
 @router.post("/regions")
@@ -484,7 +489,7 @@ async def region_create_page(
     except IntegrityError:
         db.rollback()
         return render(request, "regions.html", {"regions": service.list_regions(), "error_message": "이미 등록된 지역명입니다.", "settings": get_settings()}, status_code=400)
-    return RedirectResponse("/regions", status_code=303)
+    return RedirectResponse(with_msg("/regions", "그룹이 생성되었습니다."), status_code=303)
 
 
 @router.get("/regions/{region_id}", response_class=HTMLResponse)
@@ -496,6 +501,7 @@ async def region_detail_page(
     status: str = "전체",
     view: str = "table",
     tab: str = "academic",
+    msg: str | None = None,
     db: Session = Depends(get_db),
 ):
     try:
@@ -548,6 +554,7 @@ async def region_detail_page(
             "tab": tab,
             "candidate_rows": [],
             "manual_search_default": region.region_name,
+            "message": msg,
             "settings": get_settings(),
         },
     )
@@ -596,6 +603,7 @@ async def region_auto_discover_page(region_id: int, request: Request, target_dat
             "tab": "academic",
             "candidate_rows": candidates,
             "manual_search_default": region.region_name,
+            "message": None,
             "settings": get_settings(),
         },
     )
@@ -632,7 +640,8 @@ async def region_add_schools_page(
         )
     if rows:
         service.register_region_schools(region_id, rows)
-    return RedirectResponse(f"/regions/{region_id}", status_code=303)
+    message = "학교가 그룹에 등록되었습니다." if rows else "선택한 학교가 없습니다."
+    return RedirectResponse(with_msg(f"/regions/{region_id}", message), status_code=303)
 
 
 @router.post("/regions/{region_id}/schools/{school_id}/delete")
@@ -641,8 +650,37 @@ async def region_remove_school_page(region_id: int, school_id: int, request: Req
         require_login(request, db)
     except PermissionError:
         return login_redirect()
-    RegionService(db).deactivate_region_school(region_id, school_id)
-    return RedirectResponse(f"/regions/{region_id}", status_code=303)
+    ok = RegionService(db).deactivate_region_school(region_id, school_id)
+    message = "학교가 그룹에서 삭제되었습니다." if ok else "삭제할 학교를 찾지 못했습니다."
+    return RedirectResponse(with_msg(f"/regions/{region_id}", message), status_code=303)
+
+
+@router.post("/regions/{region_id}/delete")
+async def region_delete_page(region_id: int, request: Request, db: Session = Depends(get_db)):
+    try:
+        require_login(request, db)
+    except PermissionError:
+        return login_redirect()
+    ok = RegionService(db).delete_region(region_id)
+    message = "그룹이 삭제되었습니다." if ok else "삭제할 그룹을 찾지 못했습니다."
+    return RedirectResponse(with_msg("/regions", message), status_code=303)
+
+
+@router.get("/schools/{atpt_code}/{school_code}", response_class=HTMLResponse)
+async def school_detail_page(atpt_code: str, school_code: str, request: Request, date: str | None = None, db: Session = Depends(get_db)):
+    try:
+        require_login(request, db)
+    except PermissionError:
+        return login_redirect()
+    try:
+        target_date = datetime.fromisoformat(date).date() if date else today_kst()
+    except ValueError:
+        target_date = today_kst()
+    try:
+        detail = await RegionService(db).get_school_detail(atpt_code, school_code, target_date)
+    except ValueError:
+        return RedirectResponse(with_msg("/regions", "학교 정보를 찾을 수 없습니다."), status_code=303)
+    return render(request, "school_detail.html", {"detail": detail, "target_date": target_date, "settings": get_settings()})
 
 
 @router.get("/health")

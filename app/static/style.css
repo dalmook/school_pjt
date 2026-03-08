@@ -763,12 +763,17 @@ textarea {
 }
 
 .region-card {
-  text-decoration: none;
-  color: inherit;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--surface-soft);
   padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.region-card-link {
+  text-decoration: none;
+  color: inherit;
   display: grid;
   gap: 6px;
 }
@@ -844,6 +849,12 @@ textarea {
 .region-card-list {
   display: grid;
   gap: 12px;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 hr {

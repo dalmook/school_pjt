@@ -167,6 +167,13 @@ async def deactivate_region_school(region_id: int, school_id: int, db: Session =
     return {"ok": True}
 
 
+@router.delete("/regions/{region_id}")
+async def delete_region(region_id: int, db: Session = Depends(get_db)):
+    if not RegionService(db).delete_region(region_id):
+        raise HTTPException(status_code=404, detail="지역을 찾을 수 없습니다.")
+    return {"ok": True}
+
+
 @router.get("/regions/{region_id}/overview")
 async def region_overview(region_id: int, target_date: str | None = None, db: Session = Depends(get_db)):
     service = RegionService(db)

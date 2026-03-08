@@ -113,3 +113,44 @@ def test_region_overview_response_building():
     assert row["academic_summary"]["graduation_day"]
     assert row["academic_summary"]["discretionary_holidays"]
     assert row["today_meal_summary"].startswith("카레")
+
+
+def test_inactive_school_reactivation():
+    db = _db_session()
+    service = RegionService(db)
+    region = service.create_region("봉담")
+    saved = service.register_region_schools(
+        region.id,
+        [
+            {
+                "atpt_ofcdc_sc_code": "J10",
+                "sd_schul_code": "7012345",
+                "school_name": "봉담중학교",
+                "school_level": "중학교",
+                "address": "경기도 화성시 봉담",
+                "display_order": 0,
+            }
+        ],
+    )
+    assert len(saved) == 1
+    school_id = saved[0].id
+
+    assert service.deactivate_region_school(region.id, school_id) is True
+    assert len(service.get_region_schools(region.id, only_active=True)) == 0
+
+    service.register_region_schools(
+        region.id,
+        [
+            {
+                "atpt_ofcdc_sc_code": "J10",
+                "sd_schul_code": "7012345",
+                "school_name": "봉담중학교",
+                "school_level": "중학교",
+                "address": "경기도 화성시 봉담",
+                "display_order": 0,
+            }
+        ],
+    )
+    active_rows = service.get_region_schools(region.id, only_active=True)
+    assert len(active_rows) == 1
+    assert active_rows[0].id == school_id

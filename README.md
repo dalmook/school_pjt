@@ -238,6 +238,7 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
 2. `/regions/{id}`에서 학교명을 검색합니다.  
 3. 검색 결과(학교명/학교급/주소)를 확인하고 선택해 그룹에 추가합니다.  
 4. 학사일정 중심 표에서 학교별 주요 일정을 한눈에 비교합니다.
+5. 필요 시 그룹 상세에서 학교를 삭제한 뒤 같은 학교를 다시 재등록할 수 있습니다.
 
 ### 동작 특성
 
@@ -252,6 +253,20 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
 - `today_status`, `ongoing_events`, `upcoming_events(기본 14일)`를 계산해 학사일정 중심으로 보여줍니다.
 - 급식은 보조 정보로 내려 `today_meal_summary`, `tomorrow_meal_summary`만 제공합니다.
 - 모바일에서는 카드 뷰로 확인하기 쉽게 구성했습니다.
+
+### 관리 작업
+
+- 그룹 삭제:
+  - 웹: `/regions` 목록에서 `그룹 삭제`
+  - API: `DELETE /api/regions/{region_id}`
+- 그룹 내 학교 삭제:
+  - 웹: `/regions/{region_id}`의 학교 행에서 `삭제`
+  - API: `DELETE /api/regions/{region_id}/schools/{school_id}`
+- 학교 재등록:
+  - 삭제된 학교(soft delete)는 같은 학교명 검색 후 다시 추가하면 자동 재활성화됩니다.
+- 학교 상세 보기:
+  - 그룹 상세의 `상세` 버튼으로 학교 상세 화면(`/schools/{atpt_code}/{school_code}`)에 진입합니다.
+  - 학교명/학교급/교육청/주소/홈페이지/오늘 상태/오늘·내일 급식/오늘·이번주 학사일정을 확인할 수 있습니다.
 
 ### 향후 확장
 

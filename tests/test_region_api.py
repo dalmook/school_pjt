@@ -96,3 +96,50 @@ def test_add_school_to_group_via_api():
     schools = add_resp.json()["schools"]
     assert len(schools) == 1
     assert schools[0]["school_name"] == "병점중학교"
+
+
+def test_delete_region_via_api():
+    client, _ = _client_and_session()
+    region_resp = client.post("/api/regions", json={"region_name": "삭제대상", "region_type": None, "keyword_rules": None})
+    region_id = region_resp.json()["region"]["id"]
+
+    delete_resp = client.delete(f"/api/regions/{region_id}")
+    assert delete_resp.status_code == 200
+    assert delete_resp.json()["ok"] is True
+
+    list_resp = client.get("/api/regions")
+    assert all(item["id"] != region_id for item in list_resp.json()["regions"])
+
+
+def test_delete_school_and_reregister_via_api():
+    client, _ = _client_and_session()
+    region_resp = client.post("/api/regions", json={"region_name": "병점2", "region_type": "생활권", "keyword_rules": None})
+    region_id = region_resp.json()["region"]["id"]
+
+    add_payload = {
+        "schools": [
+            {
+                "atpt_ofcdc_sc_code": "J10",
+                "sd_schul_code": "7531038",
+                "school_name": "병점중학교",
+                "school_level": "중학교",
+                "address": "경기도 화성시 병점동",
+                "display_order": 0,
+            }
+        ]
+    }
+    add_resp = client.post(f"/api/regions/{region_id}/schools", json=add_payload)
+    school_id = add_resp.json()["schools"][0]["id"]
+
+    del_resp = client.delete(f"/api/regions/{region_id}/schools/{school_id}")
+    assert del_resp.status_code == 200
+    assert del_resp.json()["ok"] is True
+
+    detail_resp = client.get(f"/api/regions/{region_id}")
+    active_rows = [row for row in detail_resp.json()["schools"] if row["is_active"]]
+    assert len(active_rows) == 0
+
+    readd_resp = client.post(f"/api/regions/{region_id}/schools", json=add_payload)
+    assert readd_resp.status_code == 200
+    assert len(readd_resp.json()["schools"]) == 1
+    assert readd_resp.json()["schools"][0]["is_active"] is True
