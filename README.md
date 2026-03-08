@@ -210,14 +210,18 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
 - NEIS API 응답 실패가 반복되면 `sync_logs`와 컨테이너 로그를 함께 확인합니다.
 - 캐시 이상 시 컨테이너 내 `data/school_alert.db`를 백업 후 정리합니다.
 
-## 8. 지역 통합 대시보드 기능
+## 8. 학교 그룹(지역) 대시보드 기능
 
-신규 기능으로 `지역 통합 대시보드`가 추가되었습니다.
+신규 기능으로 `학교 그룹(지역) 대시보드`가 추가되었습니다.
+
+- 여기서 `region`은 행정동 자동 인식 개념이 아니라, 사용자가 직접 구성하는 `학교 묶음 그룹`입니다.
+- 예: 그룹명 `병점`을 만들고, `안화고`, `병점중`, `진안중`을 학교명 검색으로 직접 추가.
 
 - 웹 페이지:
   - `GET /regions`: 지역 목록, 지역 생성
   - `GET /regions/{region_id}`: 지역 상세 대시보드
 - API:
+  - `GET /api/schools/search?q=학교명&region_id=선택`
   - `GET /api/regions`
   - `POST /api/regions`
   - `GET /api/regions/{region_id}`
@@ -230,23 +234,28 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
 
 ### 사용 흐름
 
-1. `/regions`에서 지역을 생성합니다.  
-2. `/regions/{id}`에서 `학교 자동 찾기` 버튼으로 후보를 검색합니다.  
-3. 후보 체크박스를 선택해 지역 학교를 등록합니다.  
-4. 같은 화면에서 학사일정/급식/학교기본정보를 비교합니다.
+1. `/regions`에서 학교 그룹을 생성합니다.  
+2. `/regions/{id}`에서 학교명을 검색합니다.  
+3. 검색 결과(학교명/학교급/주소)를 확인하고 선택해 그룹에 추가합니다.  
+4. 학사일정 중심 표에서 학교별 주요 일정을 한눈에 비교합니다.
 
 ### 동작 특성
 
 - 기존 `NeisClient`의 `schoolInfo`, `SchoolSchedule`, `mealServiceDietInfo` 호출을 그대로 재사용합니다.
 - 지역 overview는 학교별 조회를 `asyncio.gather`로 병렬 처리합니다.
 - 일부 학교 조회 실패 시 전체 실패 대신 partial success로 응답하며 `warnings[]`에 원인을 담습니다.
-- 학사일정은 시험/방학/재량휴업일/행사 등으로 분류해 `today_status`를 계산합니다.
-- 급식은 알레르기 표기 정리 후 `today_meal_summary`, `tomorrow_meal_summary`로 요약합니다.
+- 학사일정 파서는 아래 카테고리를 분류합니다.
+  - 중간고사 / 기말고사 / 모의고사
+  - 여름방학 / 겨울방학
+  - 졸업식 / 개교기념일 / 재량휴업일
+  - 종업식 / 시업식 / 입학식 / 방학식 / 기타행사
+- `today_status`, `ongoing_events`, `upcoming_events(기본 14일)`를 계산해 학사일정 중심으로 보여줍니다.
+- 급식은 보조 정보로 내려 `today_meal_summary`, `tomorrow_meal_summary`만 제공합니다.
 - 모바일에서는 카드 뷰로 확인하기 쉽게 구성했습니다.
 
 ### 향후 확장
 
-- 현재 구조는 이후 텔레그램 `/region` 브리핑(지역별 요약 전송)으로 확장하기 쉽게 설계되어 있습니다.
+- 현재 구조는 이후 텔레그램 `/region` 브리핑(학교 그룹별 시험/방학/행사 요약 전송)으로 확장하기 쉽게 설계되어 있습니다.
 
 ## 9. 추후 개선 포인트
 

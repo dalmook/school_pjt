@@ -23,10 +23,13 @@ router = APIRouter(prefix="/api")
 
 
 @router.get("/schools/search")
-async def search_schools(q: str, db: Session = Depends(get_db)):
+async def search_schools(q: str, region_id: int | None = None, db: Session = Depends(get_db)):
     if not q.strip():
         return []
-    return [item.model_dump() for item in await NeisClient(db).search_schools(q.strip())]
+    try:
+        return await RegionService(db).search_school_candidates(q.strip(), region_id=region_id)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/schools/{school_code}/classes")

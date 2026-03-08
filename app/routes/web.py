@@ -495,7 +495,7 @@ async def region_detail_page(
     school_level: str = "전체",
     status: str = "전체",
     view: str = "table",
-    tab: str = "schedule",
+    tab: str = "academic",
     db: Session = Depends(get_db),
 ):
     try:
@@ -547,6 +547,7 @@ async def region_detail_page(
             "view": view,
             "tab": tab,
             "candidate_rows": [],
+            "manual_search_default": region.region_name,
             "settings": get_settings(),
         },
     )
@@ -592,8 +593,9 @@ async def region_auto_discover_page(region_id: int, request: Request, target_dat
             "school_level": "전체",
             "status": "전체",
             "view": "table",
-            "tab": "schedule",
+            "tab": "academic",
             "candidate_rows": candidates,
+            "manual_search_default": region.region_name,
             "settings": get_settings(),
         },
     )
@@ -611,6 +613,8 @@ async def region_add_schools_page(
     except PermissionError:
         return login_redirect()
     service = RegionService(db)
+    current_rows = service.get_region_schools(region_id, only_active=True)
+    base_order = len(current_rows)
     rows = []
     for idx, raw_value in enumerate(selected_school):
         parts = raw_value.split("|")
@@ -623,7 +627,7 @@ async def region_add_schools_page(
                 "school_name": parts[2],
                 "school_level": parts[3] or None,
                 "address": parts[4] or None,
-                "display_order": idx,
+                "display_order": base_order + idx,
             }
         )
     if rows:

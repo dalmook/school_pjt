@@ -11,6 +11,7 @@ class SchoolSearchResult(BaseModel):
     sd_schul_code: str
     school_name: str
     school_level: str
+    org_name: str | None = None
     location_summary: str | None = None
     address: str | None = None
     tel: str | None = None

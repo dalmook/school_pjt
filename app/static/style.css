@@ -780,6 +780,17 @@ textarea {
   margin-bottom: 16px;
 }
 
+.region-summary-grid-six {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.region-search-bar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  margin-top: 10px;
+}
+
 .region-filter-form {
   width: 100%;
   display: grid;
@@ -817,6 +828,10 @@ textarea {
   min-width: 980px;
 }
 
+.region-academic-table {
+  min-width: 1500px;
+}
+
 .region-table th,
 .region-table td {
   border-bottom: 1px solid var(--line);
@@ -844,6 +859,7 @@ hr {
   .grid.two,
   .region-grid,
   .region-summary-grid,
+  .region-summary-grid-six,
   .candidate-grid {
     grid-template-columns: 1fr;
   }
@@ -868,6 +884,10 @@ hr {
 
   .region-filter-form {
     display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .region-search-bar {
     grid-template-columns: 1fr;
   }
 
