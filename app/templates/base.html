@@ -19,6 +19,7 @@
       <nav class="nav">
         <a class="{% if request.url.path == '/' %}active{% endif %}" href="/">홈</a>
         <a class="{% if request.url.path.startswith('/profiles') %}active{% endif %}" href="/profiles">프로필</a>
+        <a class="{% if request.url.path.startswith('/regions') %}active{% endif %}" href="/regions">지역 대시보드</a>
         <a class="{% if request.url.path.startswith('/telegram') %}active{% endif %}" href="/telegram/connect">텔레그램 연결</a>
       </nav>
       <div class="auth-nav">

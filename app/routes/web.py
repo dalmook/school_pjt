@@ -19,6 +19,7 @@ from app.services.auth_service import SESSION_COOKIE, authenticate_user, create_
 from app.services.meal_service import MealService
 from app.services.notification_service import NotificationService
 from app.services.profile_service import replace_profile_rules
+from app.services.region_service import RegionService
 from app.services.schedule_service import ScheduleService
 from app.services.timetable_service import TimetableService
 from app.utils import ALLERGY_CODE_MAP, daterange, school_year_range, today_kst
@@ -453,6 +454,191 @@ async def schedule_page(profile_id: int, request: Request, month: str | None = N
     if not month_events and not error_state:
         empty_state = EmptyState(title="방학 기간이거나 조회된 일정이 없습니다.", description="선택한 월에 등록된 학사일정이 없으면 빈 달력으로 표시됩니다.", action_label="이번 달 보기", action_href=f"/schedule/{profile.id}")
     return render(request, "schedule.html", {"profile": profile, "events": month_events, "calendar_weeks": calendar_weeks, "selected_date": detail_date, "detail_entries": detail_entries, "upcoming_events": upcoming_events, "month_start": month_start, "view": view, "prev_month": prev_month.strftime("%Y-%m"), "next_month": next_month.strftime("%Y-%m"), "error_state": error_state, "empty_state": empty_state, "settings": get_settings()})
+
+
+@router.get("/regions", response_class=HTMLResponse)
+async def region_list_page(request: Request, db: Session = Depends(get_db)):
+    try:
+        require_login(request, db)
+    except PermissionError:
+        return login_redirect()
+    service = RegionService(db)
+    return render(request, "regions.html", {"regions": service.list_regions(), "error_message": None, "settings": get_settings()})
+
+
+@router.post("/regions")
+async def region_create_page(
+    request: Request,
+    region_name: str = Form(...),
+    region_type: str = Form(""),
+    keyword_rules: str = Form(""),
+    db: Session = Depends(get_db),
+):
+    try:
+        require_login(request, db)
+    except PermissionError:
+        return login_redirect()
+    service = RegionService(db)
+    try:
+        service.create_region(region_name=region_name, region_type=region_type or None, keyword_rules=keyword_rules or None)
+    except IntegrityError:
+        db.rollback()
+        return render(request, "regions.html", {"regions": service.list_regions(), "error_message": "이미 등록된 지역명입니다.", "settings": get_settings()}, status_code=400)
+    return RedirectResponse("/regions", status_code=303)
+
+
+@router.get("/regions/{region_id}", response_class=HTMLResponse)
+async def region_detail_page(
+    region_id: int,
+    request: Request,
+    target_date: str | None = None,
+    school_level: str = "전체",
+    status: str = "전체",
+    view: str = "table",
+    tab: str = "schedule",
+    db: Session = Depends(get_db),
+):
+    try:
+        require_login(request, db)
+    except PermissionError:
+        return login_redirect()
+    service = RegionService(db)
+    region = service.get_region(region_id)
+    if not region:
+        return RedirectResponse("/regions", status_code=303)
+
+    try:
+        resolved_date = datetime.fromisoformat(target_date).date() if target_date else today_kst()
+    except ValueError:
+        resolved_date = today_kst()
+    overview = await service.get_region_overview(region_id, resolved_date)
+    region_detail = {
+        "region": overview["region"],
+        "schools": [
+            {
+                "id": item.id,
+                "school_name": item.school_name,
+                "school_level": item.school_level,
+                "address": item.address,
+                "display_order": item.display_order,
+            }
+            for item in service.get_region_schools(region_id, only_active=True)
+        ],
+    }
+
+    filtered_rows = []
+    for row in overview["rows"]:
+        if school_level != "전체" and not str(row.get("school_level", "")).startswith(school_level):
+            continue
+        if status != "전체" and row.get("today_status") != status:
+            continue
+        filtered_rows.append(row)
+    overview["rows"] = filtered_rows
+
+    return render(
+        request,
+        "region_detail.html",
+        {
+            "region_detail": region_detail,
+            "overview": overview,
+            "target_date": resolved_date,
+            "school_level": school_level,
+            "status": status,
+            "view": view,
+            "tab": tab,
+            "candidate_rows": [],
+            "settings": get_settings(),
+        },
+    )
+
+
+@router.post("/regions/{region_id}/auto-discover", response_class=HTMLResponse)
+async def region_auto_discover_page(region_id: int, request: Request, target_date: str | None = Form(None), db: Session = Depends(get_db)):
+    try:
+        require_login(request, db)
+    except PermissionError:
+        return login_redirect()
+    service = RegionService(db)
+    region = service.get_region(region_id)
+    if not region:
+        return RedirectResponse("/regions", status_code=303)
+    try:
+        resolved_date = datetime.fromisoformat(target_date).date() if target_date else today_kst()
+    except ValueError:
+        resolved_date = today_kst()
+
+    overview = await service.get_region_overview(region_id, resolved_date)
+    candidates = await service.auto_discover_candidates(region_id)
+    region_detail = {
+        "region": overview["region"],
+        "schools": [
+            {
+                "id": item.id,
+                "school_name": item.school_name,
+                "school_level": item.school_level,
+                "address": item.address,
+                "display_order": item.display_order,
+            }
+            for item in service.get_region_schools(region_id, only_active=True)
+        ],
+    }
+    return render(
+        request,
+        "region_detail.html",
+        {
+            "region_detail": region_detail,
+            "overview": overview,
+            "target_date": resolved_date,
+            "school_level": "전체",
+            "status": "전체",
+            "view": "table",
+            "tab": "schedule",
+            "candidate_rows": candidates,
+            "settings": get_settings(),
+        },
+    )
+
+
+@router.post("/regions/{region_id}/schools")
+async def region_add_schools_page(
+    region_id: int,
+    request: Request,
+    selected_school: list[str] = Form(default=[]),
+    db: Session = Depends(get_db),
+):
+    try:
+        require_login(request, db)
+    except PermissionError:
+        return login_redirect()
+    service = RegionService(db)
+    rows = []
+    for idx, raw_value in enumerate(selected_school):
+        parts = raw_value.split("|")
+        if len(parts) < 5:
+            continue
+        rows.append(
+            {
+                "atpt_ofcdc_sc_code": parts[0],
+                "sd_schul_code": parts[1],
+                "school_name": parts[2],
+                "school_level": parts[3] or None,
+                "address": parts[4] or None,
+                "display_order": idx,
+            }
+        )
+    if rows:
+        service.register_region_schools(region_id, rows)
+    return RedirectResponse(f"/regions/{region_id}", status_code=303)
+
+
+@router.post("/regions/{region_id}/schools/{school_id}/delete")
+async def region_remove_school_page(region_id: int, school_id: int, request: Request, db: Session = Depends(get_db)):
+    try:
+        require_login(request, db)
+    except PermissionError:
+        return login_redirect()
+    RegionService(db).deactivate_region_school(region_id, school_id)
+    return RedirectResponse(f"/regions/{region_id}", status_code=303)
 
 
 @router.get("/health")

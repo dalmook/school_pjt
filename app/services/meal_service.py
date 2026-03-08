@@ -36,7 +36,7 @@ class MealService:
             match = ALLERGY_PATTERN.search(line)
             if match:
                 codes = [code.strip() for code in match.group(1).split(".") if code.strip()]
-            name = ALLERGY_PATTERN.sub("", line).strip()
+            name = MealService.strip_allergy_codes(line)
             items.append(
                 MealMenuItem(
                     name=name,
@@ -45,6 +45,10 @@ class MealService:
                 )
             )
         return items
+
+    @staticmethod
+    def strip_allergy_codes(raw_text: str) -> str:
+        return ALLERGY_PATTERN.sub("", raw_text or "").strip()
 
     @staticmethod
     def _parse_detail_items(raw_text: str | None) -> tuple[list[str], list[MealDetailItem]]:

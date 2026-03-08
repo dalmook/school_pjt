@@ -756,6 +756,81 @@ textarea {
 .result-item strong { font-size: 0.95rem; }
 .result-item span { color: var(--text-soft); font-size: 0.86rem; }
 
+.region-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.region-card {
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-soft);
+  padding: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.region-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-bottom: 16px;
+}
+
+.region-filter-form {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+  align-items: end;
+}
+
+.candidate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.candidate-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-soft);
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.candidate-card input {
+  width: auto;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.region-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 980px;
+}
+
+.region-table th,
+.region-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 10px 8px;
+  text-align: left;
+  vertical-align: top;
+  font-size: 0.9rem;
+}
+
+.region-card-list {
+  display: grid;
+  gap: 12px;
+}
+
 hr {
   border: none;
   border-top: 1px solid var(--line);
@@ -766,7 +841,10 @@ hr {
   .meal-layout,
   .schedule-layout,
   .hero-grid,
-  .grid.two {
+  .grid.two,
+  .region-grid,
+  .region-summary-grid,
+  .candidate-grid {
     grid-template-columns: 1fr;
   }
 
@@ -782,9 +860,15 @@ hr {
   .schedule-top-actions,
   .meal-card-head,
   .date-nav,
-  .month-switcher {
+  .month-switcher,
+  .region-filter-form {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .region-filter-form {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .nav {

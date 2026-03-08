@@ -24,7 +24,8 @@ school_pjt/
 │  │  ├─ schedule_service.py
 │  │  ├─ telegram_service.py
 │  │  ├─ notification_service.py
-│  │  └─ profile_service.py
+│  │  ├─ profile_service.py
+│  │  └─ region_service.py
 │  ├─ static/
 │  │  └─ style.css
 │  └─ templates/
@@ -36,6 +37,8 @@ school_pjt/
 │     ├─ timetable.html
 │     ├─ meal.html
 │     ├─ schedule.html
+│     ├─ regions.html
+│     ├─ region_detail.html
 │     └─ admin_logs.html
 ├─ data/
 ├─ tests/
@@ -207,7 +210,45 @@ curl -X POST "https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook" \
 - NEIS API 응답 실패가 반복되면 `sync_logs`와 컨테이너 로그를 함께 확인합니다.
 - 캐시 이상 시 컨테이너 내 `data/school_alert.db`를 백업 후 정리합니다.
 
-## 8. 추후 개선 포인트
+## 8. 지역 통합 대시보드 기능
+
+신규 기능으로 `지역 통합 대시보드`가 추가되었습니다.
+
+- 웹 페이지:
+  - `GET /regions`: 지역 목록, 지역 생성
+  - `GET /regions/{region_id}`: 지역 상세 대시보드
+- API:
+  - `GET /api/regions`
+  - `POST /api/regions`
+  - `GET /api/regions/{region_id}`
+  - `POST /api/regions/{region_id}/schools/auto-discover`
+  - `POST /api/regions/{region_id}/schools`
+  - `DELETE /api/regions/{region_id}/schools/{school_id}`
+  - `GET /api/regions/{region_id}/overview?target_date=YYYY-MM-DD`
+  - `GET /api/regions/{region_id}/meals?target_date=YYYY-MM-DD`
+  - `GET /api/regions/{region_id}/schedules?from=YYYY-MM-DD&to=YYYY-MM-DD`
+
+### 사용 흐름
+
+1. `/regions`에서 지역을 생성합니다.  
+2. `/regions/{id}`에서 `학교 자동 찾기` 버튼으로 후보를 검색합니다.  
+3. 후보 체크박스를 선택해 지역 학교를 등록합니다.  
+4. 같은 화면에서 학사일정/급식/학교기본정보를 비교합니다.
+
+### 동작 특성
+
+- 기존 `NeisClient`의 `schoolInfo`, `SchoolSchedule`, `mealServiceDietInfo` 호출을 그대로 재사용합니다.
+- 지역 overview는 학교별 조회를 `asyncio.gather`로 병렬 처리합니다.
+- 일부 학교 조회 실패 시 전체 실패 대신 partial success로 응답하며 `warnings[]`에 원인을 담습니다.
+- 학사일정은 시험/방학/재량휴업일/행사 등으로 분류해 `today_status`를 계산합니다.
+- 급식은 알레르기 표기 정리 후 `today_meal_summary`, `tomorrow_meal_summary`로 요약합니다.
+- 모바일에서는 카드 뷰로 확인하기 쉽게 구성했습니다.
+
+### 향후 확장
+
+- 현재 구조는 이후 텔레그램 `/region` 브리핑(지역별 요약 전송)으로 확장하기 쉽게 설계되어 있습니다.
+
+## 9. 추후 개선 포인트
 
 1. 웹 로그인과 보호자 계정 권한 모델을 추가해 브라우저별 임시 쿠키 방식을 대체할 수 있습니다.
 2. 프로필 수정 UI와 관리자 재시도 버튼을 별도 폼으로 확장할 수 있습니다.

@@ -61,6 +61,38 @@ class StudentProfile(Base):
     timetable_snapshots: Mapped[list["TimetableSnapshot"]] = relationship(back_populates="profile")
 
 
+class RegionGroup(Base):
+    __tablename__ = "region_groups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    region_name: Mapped[str] = mapped_column(String(100), unique=True, index=True)
+    region_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    keyword_rules: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    schools: Mapped[list["RegionSchool"]] = relationship(back_populates="region", cascade="all, delete-orphan")
+
+
+class RegionSchool(Base):
+    __tablename__ = "region_schools"
+    __table_args__ = (
+        UniqueConstraint("region_id", "atpt_ofcdc_sc_code", "sd_schul_code", name="uq_region_school_code"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    region_id: Mapped[int] = mapped_column(ForeignKey("region_groups.id"), index=True)
+    atpt_ofcdc_sc_code: Mapped[str] = mapped_column(String(32))
+    sd_schul_code: Mapped[str] = mapped_column(String(32), index=True)
+    school_name: Mapped[str] = mapped_column(String(200))
+    school_level: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    display_order: Mapped[int] = mapped_column(Integer, default=0)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+
+    region: Mapped["RegionGroup"] = relationship(back_populates="schools")
+
+
 class AllergyPref(Base):
     __tablename__ = "allergy_prefs"
 

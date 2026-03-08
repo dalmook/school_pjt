@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+{% block content %}
+{% set page_actions %}
+<a class="button secondary" href="/regions">목록으로</a>
+<form method="post" action="/regions/{{ region_detail.region.id }}/auto-discover">
+  <input type="hidden" name="target_date" value="{{ target_date.isoformat() }}">
+  <button class="button" type="submit">학교 자동 찾기</button>
+</form>
+{% endset %}
+{{ ui.page_title(region_detail.region.region_name ~ " 지역 대시보드", target_date.strftime('%Y-%m-%d') ~ " 기준", page_actions) }}
+
+<section class="region-summary-grid">
+  <article class="card"><p class="eyebrow">학교 수</p><h2>{{ overview.summary.school_count }}</h2></article>
+  <article class="card"><p class="eyebrow">오늘 급식 학교 수</p><h2>{{ overview.summary.meal_count }}</h2></article>
+  <article class="card"><p class="eyebrow">시험중 학교 수</p><h2>{{ overview.summary.exam_count }}</h2></article>
+  <article class="card"><p class="eyebrow">방학중 학교 수</p><h2>{{ overview.summary.vacation_count }}</h2></article>
+  <article class="card"><p class="eyebrow">행사 학교 수</p><h2>{{ overview.summary.event_count }}</h2></article>
+</section>
+
+<section class="toolbar card compact">
+  <form class="region-filter-form" method="get" action="/regions/{{ region_detail.region.id }}">
+    <label>기준일
+      <input type="date" name="target_date" value="{{ target_date.isoformat() }}">
+    </label>
+    <label>학교급
+      <select name="school_level">
+        {% for item in ['전체', '초', '중', '고'] %}
+        <option value="{{ item }}" {% if school_level == item %}selected{% endif %}>{{ item }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>상태
+      <select name="status">
+        {% for item in ['전체', '시험중', '방학중', '행사일', '정상수업', '재량휴업일'] %}
+        <option value="{{ item }}" {% if status == item %}selected{% endif %}>{{ item }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>보기방식
+      <select name="view">
+        <option value="table" {% if view == 'table' %}selected{% endif %}>테이블</option>
+        <option value="card" {% if view == 'card' %}selected{% endif %}>카드</option>
+      </select>
+    </label>
+    <label>탭
+      <select name="tab">
+        <option value="schedule" {% if tab == 'schedule' %}selected{% endif %}>학사일정</option>
+        <option value="meal" {% if tab == 'meal' %}selected{% endif %}>급식</option>
+        <option value="info" {% if tab == 'info' %}selected{% endif %}>학교 기본정보</option>
+      </select>
+    </label>
+    <button class="button secondary" type="submit">적용</button>
+  </form>
+</section>
+
+{% if overview.warnings %}
+<section class="state-card danger compact">
+  <h3>일부 학교 조회 실패</h3>
+  {% for warning in overview.warnings %}
+  <p>{{ warning }}</p>
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if candidate_rows %}
+<section class="card">
+  <div class="card-head">
+    <h2>자동 검색 후보</h2>
+  </div>
+  <form class="form-stack" method="post" action="/regions/{{ region_detail.region.id }}/schools">
+    <div class="candidate-grid">
+      {% for candidate in candidate_rows %}
+      <label class="candidate-card">
+        <input type="checkbox" name="selected_school" value="{{ candidate.atpt_ofcdc_sc_code }}|{{ candidate.sd_schul_code }}|{{ candidate.school_name|replace('|', ' ') }}|{{ (candidate.school_level or '')|replace('|', ' ') }}|{{ (candidate.address or '')|replace('|', ' ') }}" {% if candidate.already_registered %}disabled{% endif %}>
+        <strong>{{ candidate.school_name }}</strong>
+        <span class="muted">{{ candidate.school_level or '-' }} · {{ candidate.location_summary or '-' }}</span>
+        <span class="muted">{{ candidate.address or '-' }}</span>
+        {% if candidate.already_registered %}<span class="badge">이미 등록됨</span>{% endif %}
+      </label>
+      {% endfor %}
+    </div>
+    <button class="button" type="submit">선택한 학교 등록</button>
+  </form>
+</section>
+{% endif %}
+
+{% if view == 'card' %}
+<section class="region-card-list">
+  {% for row in overview.rows %}
+  <article class="card">
+    <div class="card-head">
+      <h2>{{ row.school_name }}</h2>
+      <span class="badge">{{ row.school_level or '-' }}</span>
+    </div>
+    <p class="muted">{{ row.address or '-' }}</p>
+    <div class="chips"><span class="chip">{{ row.today_status }}</span></div>
+    {% if tab in ['schedule', 'info'] %}
+    <p>중간고사: {{ row.midterm or '-' }}</p>
+    <p>기말고사: {{ row.finalterm or '-' }}</p>
+    <p>여름방학: {{ row.summer_vacation or '-' }}</p>
+    <p>겨울방학: {{ row.winter_vacation or '-' }}</p>
+    <p>졸업식: {{ row.graduation_day or '-' }}</p>
+    {% endif %}
+    {% if tab in ['meal', 'info'] %}
+    <p>오늘 급식: {{ row.today_meal_summary or '미등록' }}</p>
+    <p>내일 급식: {{ row.tomorrow_meal_summary or '미등록' }}</p>
+    {% endif %}
+    <form method="post" action="/regions/{{ region_detail.region.id }}/schools/{{ row.school_id }}/delete">
+      <button class="button danger" type="submit">학교 제거</button>
+    </form>
+  </article>
+  {% endfor %}
+</section>
+{% else %}
+<section class="card region-table-wrap">
+  <div class="card-head">
+    <h2>학교 비교 표</h2>
+  </div>
+  <div class="table-scroll">
+    <table class="region-table">
+      <thead>
+        <tr>
+          <th>학교명</th>
+          <th>학교급</th>
+          <th>오늘 상태</th>
+          {% if tab in ['schedule', 'info'] %}
+          <th>중간고사</th>
+          <th>기말고사</th>
+          <th>여름방학</th>
+          <th>겨울방학</th>
+          <th>졸업식</th>
+          <th>개교기념일</th>
+          <th>재량휴업일</th>
+          {% endif %}
+          {% if tab in ['meal', 'info'] %}
+          <th>오늘 급식</th>
+          <th>내일 급식</th>
+          {% endif %}
+          <th>주소</th>
+          <th>관리</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in overview.rows %}
+        <tr>
+          <td>{{ row.school_name }}</td>
+          <td>{{ row.school_level or '-' }}</td>
+          <td>{{ row.today_status }}</td>
+          {% if tab in ['schedule', 'info'] %}
+          <td>{{ row.midterm or '-' }}</td>
+          <td>{{ row.finalterm or '-' }}</td>
+          <td>{{ row.summer_vacation or '-' }}</td>
+          <td>{{ row.winter_vacation or '-' }}</td>
+          <td>{{ row.graduation_day or '-' }}</td>
+          <td>{{ row.school_anniversary or '-' }}</td>
+          <td>{{ row.discretionary_holidays|join(', ') if row.discretionary_holidays else '-' }}</td>
+          {% endif %}
+          {% if tab in ['meal', 'info'] %}
+          <td>{{ row.today_meal_summary or '미등록' }}</td>
+          <td>{{ row.tomorrow_meal_summary or '미등록' }}</td>
+          {% endif %}
+          <td>{{ row.address or '-' }}</td>
+          <td>
+            <form method="post" action="/regions/{{ region_detail.region.id }}/schools/{{ row.school_id }}/delete">
+              <button class="button danger" type="submit">제거</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

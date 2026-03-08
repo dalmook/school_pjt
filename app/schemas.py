@@ -85,3 +85,45 @@ class EmptyState(BaseModel):
 class ErrorState(BaseModel):
     title: str
     description: str
+
+
+class RegionCreateRequest(BaseModel):
+    region_name: str
+    region_type: str | None = None
+    keyword_rules: str | None = None
+
+
+class RegionSchoolRegisterItem(BaseModel):
+    atpt_ofcdc_sc_code: str
+    sd_schul_code: str
+    school_name: str
+    school_level: str | None = None
+    address: str | None = None
+    display_order: int = 0
+
+
+class RegionSchoolRegisterRequest(BaseModel):
+    schools: list[RegionSchoolRegisterItem] = Field(default_factory=list)
+
+
+class RegionSchoolOut(BaseModel):
+    id: int
+    atpt_ofcdc_sc_code: str
+    sd_schul_code: str
+    school_name: str
+    school_level: str | None = None
+    address: str | None = None
+    display_order: int
+    is_active: bool
+
+
+class RegionOut(BaseModel):
+    id: int
+    region_name: str
+    region_type: str | None = None
+    keyword_rules: str | None = None
+
+
+class RegionDetailOut(BaseModel):
+    region: RegionOut
+    schools: list[RegionSchoolOut] = Field(default_factory=list)

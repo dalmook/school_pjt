@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% import "components.html" as ui %}
+{% block content %}
+{{ ui.page_title("지역 통합 대시보드", "지역 단위로 학교 정보를 한눈에 비교합니다.") }}
+
+<section class="grid two">
+  <article class="card">
+    <div class="card-head">
+      <h2>지역 추가</h2>
+    </div>
+    {% if error_message %}
+    <section class="state-card danger compact">
+      <h3>저장 실패</h3>
+      <p>{{ error_message }}</p>
+    </section>
+    {% endif %}
+    <form class="form-stack" method="post" action="/regions">
+      <label>지역명
+        <input name="region_name" type="text" placeholder="예: 병점" required>
+      </label>
+      <label>지역 유형
+        <input name="region_type" type="text" placeholder="예: 행정동 / 사용자정의">
+      </label>
+      <label>키워드 규칙
+        <input name="keyword_rules" type="text" placeholder="예: 병점, 진안동, 화성시">
+      </label>
+      <button class="button" type="submit">지역 생성</button>
+    </form>
+  </article>
+
+  <article class="card">
+    <div class="card-head">
+      <h2>사용 가이드</h2>
+    </div>
+    <ol class="guide-list">
+      <li>지역을 생성합니다.</li>
+      <li>상세 화면에서 학교 자동 찾기를 실행합니다.</li>
+      <li>후보 학교를 선택해 지역에 등록합니다.</li>
+      <li>학사일정/급식/기본정보를 한 화면에서 비교합니다.</li>
+    </ol>
+  </article>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>지역 목록</h2>
+  </div>
+  {% if regions %}
+  <div class="region-grid">
+    {% for region in regions %}
+    <a class="region-card" href="/regions/{{ region.id }}">
+      <span class="eyebrow">{{ region.region_type or "지역" }}</span>
+      <strong>{{ region.region_name }}</strong>
+      <span class="muted">등록 학교 {{ region.school_count }}개</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-card">등록된 지역이 없습니다.</div>
+  {% endif %}
+</section>
+{% endblock %}
